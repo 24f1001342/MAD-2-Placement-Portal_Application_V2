@@ -8,7 +8,7 @@ venv/
 *.db
 
 # Environment
-.env
+*.env
 
 # Uploads
 backend/static/uploads/
