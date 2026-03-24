@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+
+# Database
+*.db
+
+# Environment
+.env
+
+# Uploads
+backend/static/uploads/
+
+# Vue
+frontend/node_modules/
+frontend/dist/
+
+# Redis
+dump.rdb
+EOF
