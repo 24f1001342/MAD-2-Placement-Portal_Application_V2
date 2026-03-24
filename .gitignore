@@ -8,8 +8,8 @@ venv/
 *.db
 
 # Environment
-*.env
-
+.env
+backend/.env
 # Uploads
 backend/static/uploads/
 
