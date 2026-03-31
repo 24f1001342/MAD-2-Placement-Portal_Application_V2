@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from extensions import db
 from sqlalchemy import select
 
@@ -27,7 +27,7 @@ def login():
     if not user.is_approved:
         return jsonify({'error': 'Account pending approval'}), 403
 
-    token = create_access_token(identity={'id': user.id, 'role': user.role})
+    token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
     return jsonify({'token': token, 'role': user.role}), 200
 
 
@@ -139,7 +139,7 @@ def register_company():
 def me():
     identity = get_jwt_identity()
     from models import User
-    user = db.session.get(User, identity['id'])
+    user = db.session.get(User, int(idenitity))
     if not user:
         return jsonify({'error': 'User not found'}), 404
     return jsonify({
