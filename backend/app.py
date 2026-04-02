@@ -1,7 +1,24 @@
 from flask import Flask
 from extensions import db, jwt, mail, cors
 from config import Config
-import os
+from celery import Celery
+from celery.schedules import crontab
+
+
+def make_celery(app):
+    celery = Celery(
+        app.import_name,
+        broker='redis://localhost:6379/0',
+        backend='redis://localhost:6379/0')
+
+    class ContextTask(celery.Task):
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
+
 
 def create_app():
     app = Flask(__name__)
@@ -33,7 +50,9 @@ def create_app():
 def seed_admin():
     from models import User
     from sqlalchemy import select
-    existing = db.session.execute(select(User).filter_by(role='admin')).scalar_one_or_none()
+    existing = db.session.execute(
+        select(User).filter_by(role='admin')
+    ).scalar_one_or_none()
     if not existing:
         admin = User(
             username='admin',
@@ -48,6 +67,22 @@ def seed_admin():
         print('Admin seeded | email: admin@example.com | password: admin123')
 
 
+flask_app = create_app()
+celery = make_celery(flask_app)
+
+from tasks import create_tasks
+send_daily_reminders, send_monthly_report, export_applications_csv = create_tasks(celery, flask_app)
+
+celery.conf.beat_schedule = {
+    'daily-reminder': {
+        'task': 'tasks.send_daily_reminders',
+        'schedule': crontab(minute=0, hour=8),
+    },
+    'monthly-report': {
+        'task': 'tasks.send_monthly_report',
+        'schedule': crontab(day_of_month=1, hour=0, minute=0),
+    },
+}
+
 if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True)
+    flask_app.run(debug=True)

@@ -261,3 +261,14 @@ def update_application(app_id):
 
     db.session.commit()
     return jsonify({'message': f'Application status updated to {new_status}'}), 200
+
+@company_bp.route('/export', methods=['POST'])
+@company_required
+def export_csv():
+    company = get_company_profile()
+    from app import export_applications_csv
+    task = export_applications_csv.delay(company.id, 'company')
+    return jsonify({
+        'message': 'Export started. Check static/exports/ when done.',
+        'task_id': task.id
+    }), 202

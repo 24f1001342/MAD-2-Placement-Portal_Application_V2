@@ -11,6 +11,7 @@ venv/
 .env
 backend/.env
 # Uploads
+backend/static
 backend/static/uploads/
 
 # Vue

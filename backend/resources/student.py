@@ -205,3 +205,16 @@ def upload_resume():
     student.resume_filename = filename
     db.session.commit()
     return jsonify({'message': 'Resume uploaded successfully'}), 200
+
+
+
+@student_bp.route('/export', methods=['POST'])
+@student_required
+def export_csv():
+    student = get_student_profile()
+    from app import export_applications_csv
+    task = export_applications_csv.delay(student.id, 'student')
+    return jsonify({
+        'message': 'Export started. Check static/exports/ when done.',
+        'task_id': task.id
+    }), 202

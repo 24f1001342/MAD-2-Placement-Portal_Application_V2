@@ -17,7 +17,4 @@ class Config:
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_USERNAME')
     
     REDIS_URL = 'redis://localhost:6379/0'
-    CELERY_BROKER_URL = 'redis://localhost:6379/0'
-    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-    
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'resumes')
