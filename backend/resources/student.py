@@ -5,6 +5,10 @@ from sqlalchemy import select, or_
 from functools import wraps
 from datetime import datetime
 import os
+import json
+import redis
+
+r = redis.Redis(host='localhost', port=6379, db=0)
 
 student_bp = Blueprint('student', __name__)
 
@@ -51,15 +55,32 @@ def dashboard():
             PlacementDrive.required_skills.ilike(f'%{search}%'),
             Company.company_name.ilike(f'%{search}%')
         ))
-
-    drives = db.session.execute(query).scalars().all()
-
     applications = db.session.execute(
         select(Application).filter_by(student_id=student.id)
     ).scalars().all()
 
     applied_drive_ids = [a.placement_drive_id for a in applications]
 
+    cache_key = f'approved_drives_{search}'
+    cached_drives = r.get(cache_key)
+
+    if cached_drives:
+        drives_data = json.loads(cached_drives)
+    else:
+        drives = db.session.execute(query).scalars().all()
+        drives_data = [{
+            'id': d.id,
+            'job_title': d.job_title,
+            'company': d.company.company_name,
+            'salary_range': d.salary_range or '—',
+            'required_skills': d.required_skills or '—',
+            'eligibility_criteria': d.eligibility_criteria or '—',
+            'deadline': d.application_deadline.strftime('%Y-%m-%d'),
+            'already_applied': d.id in applied_drive_ids
+        } for d in drives]
+        r.setex(cache_key, 300, json.dumps(drives_data))
+
+    
     return jsonify({
         'student': {
             'id': student.id,
@@ -71,16 +92,7 @@ def dashboard():
             'skills': student.skills or '—',
             'resume': student.resume_filename or None
         },
-        'drives': [{
-            'id': d.id,
-            'job_title': d.job_title,
-            'company': d.company.company_name,
-            'salary_range': d.salary_range or '—',
-            'required_skills': d.required_skills or '—',
-            'eligibility_criteria': d.eligibility_criteria or '—',
-            'deadline': d.application_deadline.strftime('%Y-%m-%d'),
-            'already_applied': d.id in applied_drive_ids
-        } for d in drives],
+        'drives': drives_data,
         'applications': [{
             'id': a.id,
             'job_title': a.placement_drive.job_title,

@@ -3,9 +3,12 @@ from flask_jwt_extended import jwt_required, get_jwt_identity,get_jwt
 from extensions import db
 from sqlalchemy import select, or_
 from functools import wraps
+import json
+import redis
 
 admin_bp = Blueprint('admin', __name__)
 
+r = redis.Redis(host='localhost', port=6379, db=0)
 
 def admin_required(f):
     @wraps(f)
@@ -23,6 +26,12 @@ def admin_required(f):
 @admin_required
 def dashboard():
     from models import User, Student, Company, PlacementDrive, Application, Placement
+
+    cached = r.get('admin_dashboard')
+    if cached:
+        return jsonify(json.loads(cached)), 200
+
+
     total_students = db.session.execute(select(Student)).scalars().all()
     total_companies = db.session.execute(select(Company)).scalars().all()
     total_drives = db.session.execute(select(PlacementDrive)).scalars().all()
@@ -40,7 +49,7 @@ def dashboard():
         select(PlacementDrive).where(PlacementDrive.status == 'Pending')
     ).scalars().all()
 
-    return jsonify({
+    data={
         'total_students': len(total_students),
         'total_companies': len(total_companies),
         'total_drives': len(total_drives),
@@ -48,7 +57,10 @@ def dashboard():
         'total_placements': len(total_placements),
         'pending_companies': [{'id': c.id, 'company_name': c.company_name, 'industry': c.industry} for c in pending_companies],
         'pending_drives': [{'id': d.id, 'job_title': d.job_title, 'company': d.company.company_name} for d in pending_drives]
-    }), 200
+    }
+    r.setex('admin_dashboard', 600, json.dumps(data))
+    return jsonify(data), 200
+
 
 
 @admin_bp.route('/companies', methods=['GET'])
