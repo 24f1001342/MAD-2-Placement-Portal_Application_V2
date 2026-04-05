@@ -97,6 +97,7 @@ def approve_company(id):
     user = db.session.get(User, company.user_id)
     user.is_approved = True
     db.session.commit()
+    r.delete('admin_dashboard')
     return jsonify({'message': f'{company.company_name} approved'}), 200
 
 
@@ -110,6 +111,7 @@ def reject_company(id):
     user = db.session.get(User, company.user_id)
     user.is_approved = False
     db.session.commit()
+    r.delete('admin_dashboard')
     return jsonify({'message': f'{company.company_name} rejected'}), 200
 
 
@@ -218,6 +220,10 @@ def approve_drive(id):
         return jsonify({'error': 'Drive not found'}), 404
     drive.status = 'Approved'
     db.session.commit()
+    drive_keys = r.keys('approved_drives_*')
+    if drive_keys:
+        r.delete(*drive_keys)
+    r.delete('admin_dashboard')
     return jsonify({'message': f'{drive.job_title} approved'}), 200
 
 
@@ -230,6 +236,10 @@ def reject_drive(id):
         return jsonify({'error': 'Drive not found'}), 404
     drive.status = 'Rejected'
     db.session.commit()
+    drive_keys = r.keys('approved_drives_*')
+    if drive_keys:
+        r.delete(*drive_keys)
+    r.delete('admin_dashboard')
     return jsonify({'message': f'{drive.job_title} rejected'}), 200
 
 

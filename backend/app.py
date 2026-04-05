@@ -1,9 +1,9 @@
-from flask import Flask
+from flask import Flask,send_from_directory
 from extensions import db, jwt, mail, cors
 from config import Config
 from celery import Celery
 from celery.schedules import crontab
-
+import os
 
 def make_celery(app):
     celery = Celery(
@@ -84,5 +84,11 @@ celery.conf.beat_schedule = {
     },
 }
 
+@flask_app.route('/')
+def index():
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), '..', 'frontend'),
+        'index.html'
+    )
 if __name__ == '__main__':
     flask_app.run(debug=True)

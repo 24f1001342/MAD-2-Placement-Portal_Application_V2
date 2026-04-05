@@ -36,7 +36,6 @@ def get_student_profile():
         select(Student).filter_by(user_id=int(identity))
     ).scalar_one_or_none()
 
-
 @student_bp.route('/dashboard', methods=['GET'])
 @student_required
 def dashboard():
@@ -44,21 +43,10 @@ def dashboard():
     student = get_student_profile()
 
     search = request.args.get('search', '')
-    query = select(PlacementDrive).join(Company).where(
-        PlacementDrive.status == 'Approved',
-        PlacementDrive.application_deadline >= datetime.now()
-    ).distinct()
 
-    if search:
-        query = query.where(or_(
-            PlacementDrive.job_title.ilike(f'%{search}%'),
-            PlacementDrive.required_skills.ilike(f'%{search}%'),
-            Company.company_name.ilike(f'%{search}%')
-        ))
     applications = db.session.execute(
         select(Application).filter_by(student_id=student.id)
     ).scalars().all()
-
     applied_drive_ids = [a.placement_drive_id for a in applications]
 
     cache_key = f'approved_drives_{search}'
@@ -66,7 +54,19 @@ def dashboard():
 
     if cached_drives:
         drives_data = json.loads(cached_drives)
+        for d in drives_data:
+            d['already_applied'] = d['id'] in applied_drive_ids
     else:
+        query = select(PlacementDrive).join(Company).where(
+            PlacementDrive.status == 'Approved',
+            PlacementDrive.application_deadline >= datetime.now()
+        ).distinct()
+        if search:
+            query = query.where(or_(
+                PlacementDrive.job_title.ilike(f'%{search}%'),
+                PlacementDrive.required_skills.ilike(f'%{search}%'),
+                Company.company_name.ilike(f'%{search}%')
+            ))
         drives = db.session.execute(query).scalars().all()
         drives_data = [{
             'id': d.id,
@@ -80,7 +80,6 @@ def dashboard():
         } for d in drives]
         r.setex(cache_key, 300, json.dumps(drives_data))
 
-    
     return jsonify({
         'student': {
             'id': student.id,
@@ -101,7 +100,6 @@ def dashboard():
             'applied_at': a.applied_at.strftime('%Y-%m-%d')
         } for a in applications]
     }), 200
-
 
 @student_bp.route('/apply/<int:drive_id>', methods=['POST'])
 @student_required
@@ -136,8 +134,13 @@ def apply(drive_id):
     )
     db.session.add(new_application)
     db.session.commit()
+    
+    # Invalidate drives cache
+    for key in r.keys('approved_drives_*'):
+        r.delete(key)
+    
+    r.delete('admin_dashboard')
     return jsonify({'message': f'Successfully applied for {drive.job_title}'}), 201
-
 
 @student_bp.route('/applications', methods=['GET'])
 @student_required

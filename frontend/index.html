@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Portal V2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #121212; color: #e0e0e0; }
+        .navbar { background-color: #1f1f1f !important; border-bottom: 1px solid #333; }
+        .navbar-brand { color: #4fc3f7 !important; font-weight: 700; }
+        .nav-link { color: #aaa !important; }
+        .nav-link:hover { color: #4fc3f7 !important; }
+        .card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 12px; }
+        .card-header { background-color: #252525; border-bottom: 1px solid #333; font-weight: 600; color: #4fc3f7; }
+        .btn-primary { background-color: #4fc3f7; border-color: #4fc3f7; color: #121212; font-weight: 600; }
+        .btn-primary:hover { background-color: #29b6f6; border-color: #29b6f6; color: #121212; }
+        .form-control, .form-select { background-color: #2a2a2a; border: 1px solid #444; color: #e0e0e0; }
+        .form-control:focus, .form-select:focus { background-color: #2a2a2a; border-color: #4fc3f7; color: #e0e0e0; box-shadow: none; }
+        .form-label {color: #4fc3f7 !important; font-weight: 600; margin-bottom: 0.5rem;
+        }
+        .table { color: #e0e0e0; }
+        .table-dark { --bs-table-bg: #1e1e1e; }
+        a { color: #4fc3f7; }
+        ::placeholder { color: #666 !important; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg" v-if="currentUser">
+            <div class="container">
+                <a class="navbar-brand" href="#"><i class="bi bi-briefcase-fill me-2"></i>Placement Portal</a>
+                <div class="navbar-nav ms-auto d-flex flex-row align-items-center gap-3">
+                    <span class="nav-link">
+                        <i class="bi bi-person-circle me-1"></i>{{ currentUser.username }}
+                        <span class="badge ms-1" :class="roleBadge">{{ currentUser.role }}</span>
+                    </span>
+                    <a class="nav-link" href="#" @click="logout"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mt-4">
+            <!-- Alert -->
+            <div v-if="alert.message" :class="`alert alert-${alert.type} alert-dismissible`">
+                {{ alert.message }}
+                <button type="button" class="btn-close" @click="alert.message=''"></button>
+            </div>
+
+            <!-- Login Page -->
+            <div v-if="!currentUser && page==='login'">
+                <div class="row justify-content-center mt-5">
+                    <div class="col-md-5">
+                        <div class="card shadow">
+                            <div class="card-header text-center py-3">
+                                <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" v-model="loginForm.email" class="form-control" placeholder="you@example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" v-model="loginForm.password" class="form-control" placeholder="••••••••">
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button class="btn btn-primary" @click="login">
+                                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                                    </button>
+                                </div>
+                                <hr style="border-color:#333">
+                                <div class="text-center text-muted" style="font-size:0.9rem">
+                                    New here?
+                                    <a href="#" @click="page='register-student'">Register as Student</a> or
+                                    <a href="#" @click="page='register-company'">Register as Company</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Register Student -->
+            <div v-if="page==='register-student' && !currentUser">
+                <div class="row justify-content-center mt-4">
+                    <div class="col-md-7">
+                        <div class="card shadow">
+                            <div class="card-header text-center py-3"><i class="bi bi-mortarboard me-2"></i>Student Registration</div>
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Username</label><input v-model="regStudent.username" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Email</label><input type="email" v-model="regStudent.email" class="form-control"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Password</label><input type="password" v-model="regStudent.password" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Full Name</label><input v-model="regStudent.full_name" class="form-control"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Roll Number</label><input v-model="regStudent.roll_number" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">CGPA</label><input type="number" step="0.01" v-model="regStudent.cgpa" class="form-control"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Degree</label><input v-model="regStudent.degree" class="form-control" placeholder="B.Tech"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Branch</label><input v-model="regStudent.branch" class="form-control" placeholder="CSE"></div>
+                                </div>
+                                <div class="mb-3"><label class="form-label">Skills</label><input v-model="regStudent.skills" class="form-control" placeholder="Python, Flask, SQL"></div>
+                                <div class="d-grid mt-3">
+                                    <button class="btn btn-primary" @click="registerStudent">Register as Student</button>
+                                </div>
+                                <div class="text-center mt-3"><a href="#" @click="page='login'">Back to Login</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Register Company -->
+            <div v-if="page==='register-company' && !currentUser">
+                <div class="row justify-content-center mt-4">
+                    <div class="col-md-7">
+                        <div class="card shadow">
+                            <div class="card-header text-center py-3"><i class="bi bi-building me-2"></i>Company Registration</div>
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Username</label><input v-model="regCompany.username" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Email</label><input type="email" v-model="regCompany.email" class="form-control"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Password</label><input type="password" v-model="regCompany.password" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Company Name</label><input v-model="regCompany.company_name" class="form-control"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Industry</label><input v-model="regCompany.industry" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Location</label><input v-model="regCompany.location" class="form-control"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">HR Contact</label><input v-model="regCompany.hr_contact" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Website</label><input v-model="regCompany.website" class="form-control"></div>
+                                </div>
+                                <div class="mb-3"><label class="form-label">Description</label><textarea v-model="regCompany.description" class="form-control" rows="2"></textarea></div>
+                                <div class="d-grid mt-3">
+                                    <button class="btn btn-primary" @click="registerCompany">Register Company</button>
+                                </div>
+                                <div class="text-center mt-3"><a href="#" @click="page='login'">Back to Login</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard -->
+            <div v-if="currentUser && currentUser.role==='admin' && page==='dashboard'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-speedometer2 me-2"></i>Admin Dashboard</h3>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md" v-for="stat in adminStats" :key="stat.label">
+                        <div class="card text-center">
+                            <div class="card-body py-4">
+                                <i :class="`bi ${stat.icon} fs-2 mb-2 d-block`" :style="`color:${stat.color}`"></i>
+                                <h2 class="fw-bold text-white">{{ stat.value }}</h2>
+                                <p class="text-secondary mb-2">{{ stat.label }}</p>
+                                <a :href="stat.href" class="btn btn-outline-secondary btn-sm w-100" @click.prevent="navigateTo(stat.page)">{{ stat.action }}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Companies -->
+                <div class="card mb-4" v-if="pendingCompanies.length">
+                    <div class="card-header"><i class="bi bi-hourglass-split me-2"></i>Pending Company Approvals <span class="badge bg-warning text-dark ms-2">{{ pendingCompanies.length }}</span></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Company</th><th>Industry</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="c in pendingCompanies" :key="c.id">
+                                        <td>{{ c.company_name }}</td>
+                                        <td>{{ c.industry }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success me-1" @click="approveCompany(c.id)">Approve</button>
+                                            <button class="btn btn-sm btn-danger" @click="rejectCompany(c.id)">Reject</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Drives -->
+                <div class="card mb-4" v-if="pendingDrives.length">
+                    <div class="card-header"><i class="bi bi-hourglass-split me-2"></i>Pending Drive Approvals <span class="badge bg-warning text-dark ms-2">{{ pendingDrives.length }}</span></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Job Title</th><th>Company</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="d in pendingDrives" :key="d.id">
+                                        <td>{{ d.job_title }}</td>
+                                        <td>{{ d.company }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success me-1" @click="approveDrive(d.id)">Approve</button>
+                                            <button class="btn btn-sm btn-danger" @click="rejectDrive(d.id)">Reject</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Companies Page -->
+            <div v-if="currentUser && currentUser.role==='admin' && page==='companies'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-building me-2"></i>Companies</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="input-group mb-4">
+                    <input type="text" v-model="companySearch" class="form-control" placeholder="Search by name or industry...">
+                    <button class="btn btn-primary" @click="searchCompanies"><i class="bi bi-search"></i></button>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Company</th><th>Industry</th><th>HR Contact</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="c in companiesList" :key="c.id">
+                                        <td>{{ c.company_name }}</td>
+                                        <td>{{ c.industry }}</td>
+                                        <td>{{ c.hr_contact }}</td>
+                                        <td>
+                                            <span v-if="c.is_blacklisted" class="badge bg-dark">Blacklisted</span>
+                                            <span v-else-if="c.is_approved" class="badge bg-success">Approved</span>
+                                            <span v-else class="badge bg-warning text-dark">Pending</span>
+                                        </td>
+                                        <td>
+                                            <button v-if="!c.is_approved && !c.is_blacklisted" class="btn btn-sm btn-success me-1" @click="approveCompany(c.id)">Approve</button>
+                                            <button class="btn btn-sm btn-secondary me-1" @click="blacklistCompany(c.id)">{{ c.is_blacklisted ? 'Unblacklist' : 'Blacklist' }}</button>
+                                            <button class="btn btn-sm btn-danger" @click="deleteCompany(c.id)">Delete</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Students Page -->
+            <div v-if="currentUser && currentUser.role==='admin' && page==='students'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-people me-2"></i>Students</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="input-group mb-4">
+                    <input type="text" v-model="studentSearch" class="form-control" placeholder="Search by name, roll number or email...">
+                    <button class="btn btn-primary" @click="searchStudents"><i class="bi bi-search"></i></button>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Name</th><th>Roll No</th><th>Email</th><th>CGPA</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="s in studentsList" :key="s.id">
+                                        <td>{{ s.full_name }}</td>
+                                        <td>{{ s.roll_number }}</td>
+                                        <td>{{ s.email }}</td>
+                                        <td>{{ s.cgpa }}</td>
+                                        <td>
+                                            <span v-if="s.is_blacklisted" class="badge bg-dark">Blacklisted</span>
+                                            <span v-else class="badge bg-success">Active</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-secondary me-1" @click="blacklistStudent(s.id)">{{ s.is_blacklisted ? 'Unblacklist' : 'Blacklist' }}</button>
+                                            <button class="btn btn-sm btn-danger" @click="deleteStudent(s.id)">Delete</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Drives Page -->
+            <div v-if="currentUser && currentUser.role==='admin' && page==='drives'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-briefcase me-2"></i>Placement Drives</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Job Title</th><th>Company</th><th>Deadline</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="d in drivesList" :key="d.id">
+                                        <td>{{ d.job_title }}</td>
+                                        <td>{{ d.company }}</td>
+                                        <td>{{ d.deadline }}</td>
+                                        <td>
+                                            <span :class="driveStatusBadge(d.status)">{{ d.status }}</span>
+                                        </td>
+                                        <td>
+                                            <button v-if="d.status==='Pending'" class="btn btn-sm btn-success me-1" @click="approveDrive(d.id)">Approve</button>
+                                            <button v-if="d.status==='Pending'" class="btn btn-sm btn-danger" @click="rejectDrive(d.id)">Reject</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Admin Applications Page -->
+            <div v-if="currentUser && currentUser.role==='admin' && page==='applications-admin'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-file-earmark-text me-2"></i>All Applications</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Student</th><th>Roll No</th><th>Drive</th><th>Company</th><th>Status</th><th>Applied On</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="a in adminApplicationsList" :key="a.id">
+                                        <td>{{ a.student }}</td>
+                                        <td>{{ a.roll_number }}</td>
+                                        <td>{{ a.drive }}</td>
+                                        <td>{{ a.company }}</td>
+                                        <td><span :class="appStatusBadge(a.status)">{{ a.status }}</span></td>
+                                        <td>{{ a.applied_at }}</td>
+                                    </tr>
+                                    <tr v-if="!adminApplicationsList.length"><td colspan="6" class="text-center text-muted py-3">No applications yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Placements Page -->
+            <div v-if="currentUser && currentUser.role==='admin' && page==='placements-admin'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-trophy me-2"></i>All Placements</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Student</th><th>Company</th><th>Job Title</th><th>Salary</th><th>Placed On</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="p in adminPlacementsList" :key="p.id">
+                                        <td>{{ p.student }}</td>
+                                        <td>{{ p.company }}</td>
+                                        <td>{{ p.job_title }}</td>
+                                        <td>{{ p.salary }}</td>
+                                        <td>{{ p.placed_at }}</td>
+                                    </tr>
+                                    <tr v-if="!adminPlacementsList.length"><td colspan="5" class="text-center text-muted py-3">No placements yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Company Dashboard -->
+            <div v-if="currentUser && currentUser.role==='company' && page==='dashboard'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-building me-2"></i>{{ companyData.company_name }}</h3>
+                    <button class="btn btn-primary" @click="page='create-drive'"><i class="bi bi-plus-lg me-2"></i>Post New Drive</button>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header">Company Details</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 text-secondary">Industry</div><div class="col-md-9 text-white">{{ companyData.industry }}</div>
+                        </div>
+                        <hr style="border-color:#333">
+                        <div class="row">
+                            <div class="col-md-3 text-secondary">Location</div><div class="col-md-9 text-white">{{ companyData.location }}</div>
+                        </div>
+                        <hr style="border-color:#333">
+                        <div class="row">
+                            <div class="col-md-3 text-secondary">HR Contact</div><div class="col-md-9 text-white">{{ companyData.hr_contact }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-briefcase me-2"></i>Posted Drives</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Job Title</th><th>Deadline</th><th>Status</th><th>Applicants</th><th>Actions</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="d in companyDrives" :key="d.id">
+                                        <td>{{ d.job_title }}</td>
+                                        <td>{{ d.deadline }}</td>
+                                        <td><span :class="driveStatusBadge(d.status)">{{ d.status }}</span></td>
+                                        <td><a href="#" @click.prevent="viewApplications(d.id)">{{ d.app_count }} applicant(s)</a></td>
+                                        <td>
+                                            <button v-if="d.status!=='Closed'" class="btn btn-sm btn-warning me-1" @click="closeDrive(d.id)">Close</button>
+                                            <button class="btn btn-sm btn-danger" @click="deleteDrive(d.id)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!companyDrives.length"><td colspan="5" class="text-center text-muted py-3">No drives posted yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-outline-secondary btn-sm" @click="exportCSV('company')">
+                        <i class="bi bi-download me-1"></i>Export Applications CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Create Drive -->
+            <div v-if="currentUser && currentUser.role==='company' && page==='create-drive'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-plus-circle me-2"></i>Post New Drive</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="row justify-content-center">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Job Title *</label><input v-model="driveForm.job_title" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Salary Range</label><input v-model="driveForm.salary_range" class="form-control" placeholder="e.g. 6-8 LPA"></div>
+                                </div>
+                                <div class="mb-3"><label class="form-label">Job Description</label><textarea v-model="driveForm.job_description" class="form-control" rows="3"></textarea></div>
+                                <div class="mb-3"><label class="form-label">Eligibility Criteria</label><textarea v-model="driveForm.eligibility_criteria" class="form-control" rows="2"></textarea></div>
+                                <div class="mb-3"><label class="form-label">Required Skills</label><input v-model="driveForm.required_skills" class="form-control" placeholder="Python, Flask, SQL"></div>
+                                <div class="mb-3"><label class="form-label">Application Deadline *</label><input type="date" v-model="driveForm.application_deadline" class="form-control"></div>
+                                <div class="d-grid mt-3">
+                                    <button class="btn btn-primary" @click="createDrive"><i class="bi bi-send me-2"></i>Submit for Approval</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company Applications -->
+            <div v-if="currentUser && currentUser.role==='company' && page==='applications'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-people me-2"></i>Applications</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Student</th><th>Roll No</th><th>CGPA</th><th>Skills</th><th>Status</th><th>Update</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="a in applicationsList" :key="a.id">
+                                        <td>{{ a.student_name }}</td>
+                                        <td>{{ a.roll_number }}</td>
+                                        <td>{{ a.cgpa }}</td>
+                                        <td>{{ a.skills }}</td>
+                                        <td><span :class="appStatusBadge(a.status)">{{ a.status }}</span></td>
+                                        <td>
+                                            <div class="d-flex gap-1">
+                                                <select v-model="a.newStatus" class="form-select form-select-sm" style="width:130px">
+                                                    <option>Applied</option>
+                                                    <option>Shortlisted</option>
+                                                    <option>Interview</option>
+                                                    <option>Selected</option>
+                                                    <option>Rejected</option>
+                                                </select>
+                                                <input v-if="a.newStatus==='Selected'" v-model="a.salary" class="form-control form-control-sm" placeholder="Salary" style="width:100px">
+                                                <button class="btn btn-sm btn-primary" @click="updateApplication(a)"><i class="bi bi-check"></i></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!applicationsList.length"><td colspan="6" class="text-center text-muted py-3">No applications yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Dashboard -->
+            <div v-if="currentUser && currentUser.role==='student' && page==='dashboard'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-mortarboard me-2"></i>{{ studentData.full_name }}</h3>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm me-2" @click="page='edit-profile'"><i class="bi bi-pencil me-1"></i>Edit Profile</button>
+                        <button class="btn btn-outline-success btn-sm" @click="loadPlacements()"><i class="bi bi-trophy me-1"></i>Placement History</button>
+                    </div>
+                </div>
+
+                <!-- Student Profile Card -->
+                <div class="card mb-4">
+                    <div class="card-header">My Profile</div>
+                    <div class="card-body">
+                        <div class="row"><div class="col-md-3 text-secondary">Roll Number</div><div class="col-md-9 text-white">{{ studentData.roll_number }}</div></div>
+                        <hr style="border-color:#333">
+                        <div class="row"><div class="col-md-3 text-secondary">Degree / Branch</div><div class="col-md-9 text-white">{{ studentData.degree }} / {{ studentData.branch }}</div></div>
+                        <hr style="border-color:#333">
+                        <div class="row"><div class="col-md-3 text-secondary">CGPA</div><div class="col-md-9 text-white">{{ studentData.cgpa }}</div></div>
+                        <hr style="border-color:#333">
+                        <div class="row"><div class="col-md-3 text-secondary">Skills</div><div class="col-md-9 text-white">{{ studentData.skills }}</div></div>
+                        <hr style="border-color:#333">
+                        <div class="row align-items-center">
+                            <div class="col-md-3 text-secondary">Resume</div>
+                            <div class="col-md-9">
+                                <span v-if="studentData.resume" class="text-success me-3"><i class="bi bi-file-earmark-check me-1"></i>{{ studentData.resume }}</span>
+                                <span v-else class="text-muted me-3">No resume uploaded</span>
+                                <input type="file" id="resumeInput" accept=".pdf" style="display:none" @change="uploadResume">
+                                <button class="btn btn-sm btn-outline-primary" @click="$refs.resumeInput.click()">
+                                    <i class="bi bi-upload me-1"></i>{{ studentData.resume ? 'Replace' : 'Upload PDF' }}
+                                </button>
+                                <input type="file" ref="resumeInput" accept=".pdf" style="display:none" @change="uploadResume">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Applications -->
+                <div class="card mb-4" v-if="studentApplications.length">
+                    <div class="card-header"><i class="bi bi-file-earmark-text me-2"></i>My Applications</div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Job Title</th><th>Company</th><th>Applied On</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="a in studentApplications" :key="a.id">
+                                        <td>{{ a.job_title }}</td>
+                                        <td>{{ a.company }}</td>
+                                        <td>{{ a.applied_at }}</td>
+                                        <td><span :class="appStatusBadge(a.status)">{{ a.status }}</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Available Drives -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-briefcase me-2"></i>Available Drives</span>
+                        <div class="d-flex gap-2">
+                            <input type="text" v-model="driveSearch" class="form-control form-control-sm" placeholder="Search..." style="width:220px">
+                            <button class="btn btn-sm btn-primary" @click="searchDrives"><i class="bi bi-search"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Job Title</th><th>Company</th><th>Salary</th><th>Skills</th><th>Deadline</th><th>Action</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="d in availableDrives" :key="d.id">
+                                        <td>{{ d.job_title }}</td>
+                                        <td>{{ d.company }}</td>
+                                        <td>{{ d.salary_range }}</td>
+                                        <td>{{ d.required_skills }}</td>
+                                        <td>{{ d.deadline }}</td>
+                                        <td>
+                                            <span v-if="d.already_applied" class="badge bg-success">Applied</span>
+                                            <button v-else class="btn btn-sm btn-primary" @click="applyDrive(d.id)">Apply</button>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!availableDrives.length"><td colspan="6" class="text-center text-muted py-3">No drives available.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button class="btn btn-outline-secondary btn-sm" @click="exportCSV('student')">
+                        <i class="bi bi-download me-1"></i>Export My Applications CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Student Placements -->
+            <div v-if="currentUser && currentUser.role==='student' && page==='placements'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-trophy me-2"></i>Placement History</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover mb-0">
+                                <thead><tr><th>Job Title</th><th>Company</th><th>Salary</th><th>Placed On</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="p in placementsList" :key="p.id">
+                                        <td>{{ p.job_title }}</td>
+                                        <td>{{ p.company }}</td>
+                                        <td>{{ p.salary }}</td>
+                                        <td>{{ p.placed_at }}</td>
+                                        <td><span class="badge bg-success">{{ p.status }}</span></td>
+                                    </tr>
+                                    <tr v-if="!placementsList.length"><td colspan="5" class="text-center text-muted py-3">No placements yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Profile -->
+            <div v-if="currentUser && currentUser.role==='student' && page==='edit-profile'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3><i class="bi bi-pencil me-2"></i>Edit Profile</h3>
+                    <button class="btn btn-outline-secondary btn-sm" @click="page='dashboard'"><i class="bi bi-arrow-left me-1"></i>Back</button>
+                </div>
+                <div class="row justify-content-center">
+                    <div class="col-md-7">
+                        <div class="card">
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Full Name</label><input v-model="profileForm.full_name" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">CGPA</label><input type="number" step="0.01" v-model="profileForm.cgpa" class="form-control"></div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3"><label class="form-label">Degree</label><input v-model="profileForm.degree" class="form-control"></div>
+                                    <div class="col-md-6 mb-3"><label class="form-label">Branch</label><input v-model="profileForm.branch" class="form-control"></div>
+                                </div>
+                                <div class="mb-3"><label class="form-label">Skills</label><input v-model="profileForm.skills" class="form-control"></div>
+                                <div class="d-grid mt-3">
+                                    <button class="btn btn-primary" @click="saveProfile"><i class="bi bi-check-lg me-2"></i>Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const API = 'http://localhost:5000/api';
+
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    page: 'login',
+                    currentUser: null,
+                    token: null,
+                    alert: { message: '', type: 'info' },
+                    loginForm: { email: '', password: '' },
+                    regStudent: { username: '', email: '', password: '', full_name: '', roll_number: '', degree: '', branch: '', cgpa: '', skills: '' },
+                    regCompany: { username: '', email: '', password: '', company_name: '', industry: '', location: '', hr_contact: '', website: '', description: '' },
+                    driveForm: { job_title: '', job_description: '', eligibility_criteria: '', required_skills: '', salary_range: '', application_deadline: '' },
+                    profileForm: { full_name: '', degree: '', branch: '', cgpa: '', skills: '' },
+                    // Admin data
+                    adminStats: [],
+                    pendingCompanies: [],
+                    pendingDrives: [],
+                    companiesList: [],
+                    studentsList: [],
+                    drivesList: [],
+                    companySearch: '',
+                    studentSearch: '',
+                    adminApplicationsList: [],
+                    adminPlacementsList: [],
+                    // Company data
+                    companyData: {},
+                    companyDrives: [],
+                    applicationsList: [],
+                    currentDriveId: null,
+                    // Student data
+                    studentData: {},
+                    studentApplications: [],
+                    availableDrives: [],
+                    placementsList: [],
+                    driveSearch: '',
+                }
+            },
+            computed: {
+                roleBadge() {
+                    if (!this.currentUser) return '';
+                    const badges = { admin: 'bg-danger', company: 'bg-warning text-dark', student: 'bg-success' };
+                    return 'badge ' + (badges[this.currentUser.role] || 'bg-secondary');
+                }
+            },
+            methods: {
+                showAlert(message, type='success') {
+                    this.alert = { message, type };
+                    setTimeout(() => this.alert.message = '', 4000);
+                },
+                authHeaders() {
+                    return { Authorization: `Bearer ${this.token}` };
+                },
+                async login() {
+                    try {
+                        const res = await axios.post(`${API}/auth/login`, this.loginForm);
+                        this.token = res.data.token;
+                        this.currentUser = { role: res.data.role };
+                        localStorage.setItem('token', this.token);
+                        localStorage.setItem('role', res.data.role);
+                        await this.fetchMe();
+                        this.page = 'dashboard';
+                        await this.loadDashboard();
+                    } catch(e) {
+                        this.showAlert(e.response?.data?.error || 'Login failed', 'danger');
+                    }
+                },
+                async fetchMe() {
+                    const res = await axios.get(`${API}/auth/me`, { headers: this.authHeaders() });
+                    this.currentUser = res.data;
+                },
+                async registerStudent() {
+                    try {
+                        await axios.post(`${API}/auth/register/student`, this.regStudent);
+                        this.showAlert('Registration successful! You can now log in.');
+                        this.page = 'login';
+                    } catch(e) {
+                        this.showAlert(e.response?.data?.error || 'Registration failed', 'danger');
+                    }
+                },
+                async registerCompany() {
+                    try {
+                        await axios.post(`${API}/auth/register/company`, this.regCompany);
+                        this.showAlert('Registration submitted! Await admin approval.');
+                        this.page = 'login';
+                    } catch(e) {
+                        this.showAlert(e.response?.data?.error || 'Registration failed', 'danger');
+                    }
+                },
+                logout() {
+                    this.token = null;
+                    this.currentUser = null;
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('role');
+                    this.page = 'login';
+                },
+                async navigateTo(page) {
+                    this.page = page;
+                    if (page === 'companies') await this.searchCompanies();
+                    else if (page === 'students') await this.searchStudents();
+                    else if (page === 'drives') await this.loadDrives();
+                    else if (page === 'applications-admin') await this.loadAdminApplications();
+                    else if (page === 'placements-admin') await this.loadAdminPlacements();
+                },
+                async loadDashboard() {
+                    const role = this.currentUser.role;
+                    if (role === 'admin') await this.loadAdminDashboard();
+                    else if (role === 'company') await this.loadCompanyDashboard();
+                    else if (role === 'student') await this.loadStudentDashboard();
+                },
+                // ── ADMIN ──
+                async loadAdminDashboard() {
+                    const res = await axios.get(`${API}/admin/dashboard`, { headers: this.authHeaders() });
+                    const d = res.data;
+                    this.pendingCompanies = d.pending_companies;
+                    this.pendingDrives = d.pending_drives;
+                    this.adminStats = [
+                        { label: 'Companies', value: d.total_companies, icon: 'bi-building', color: '#ffa726', page: 'companies', action: 'Manage' },
+                        { label: 'Students', value: d.total_students, icon: 'bi-people-fill', color: '#4fc3f7', page: 'students', action: 'Manage' },
+                        { label: 'Drives', value: d.total_drives, icon: 'bi-briefcase-fill', color: '#66bb6a', page: 'drives', action: 'Manage' },
+                        { label: 'Applications', value: d.total_applications, icon: 'bi-file-earmark-text-fill', color: '#ef5350', page: 'applications-admin', action: 'View' },
+                        { label: 'Placements', value: d.total_placements, icon: 'bi-trophy-fill', color: '#ab47bc', page: 'placements-admin', action: 'View' },
+                    ];
+                },
+                async loadAdminApplications() {
+                    const res = await axios.get(`${API}/admin/applications`, { headers: this.authHeaders() });
+                    this.adminApplicationsList = res.data;
+                },
+                async loadAdminPlacements() {
+                    const res = await axios.get(`${API}/admin/placements`, { headers: this.authHeaders() });
+                    this.adminPlacementsList = res.data;
+                },
+                async searchCompanies() {
+                    const res = await axios.get(`${API}/admin/companies?search=${this.companySearch}`, { headers: this.authHeaders() });
+                    this.companiesList = res.data;
+                    this.page = 'companies';
+                },
+                async searchStudents() {
+                    const res = await axios.get(`${API}/admin/students?search=${this.studentSearch}`, { headers: this.authHeaders() });
+                    this.studentsList = res.data;
+                    this.page = 'students';
+                },
+                async loadDrives() {
+                    const res = await axios.get(`${API}/admin/drives`, { headers: this.authHeaders() });
+                    this.drivesList = res.data;
+                    this.page = 'drives';
+                },
+                async approveCompany(id) {
+                    await axios.post(`${API}/admin/company/${id}/approve`, {}, { headers: this.authHeaders() });
+                    this.showAlert('Company approved');
+                    await this.loadAdminDashboard();
+                    if (this.page === 'companies') await this.searchCompanies();
+                },
+                async rejectCompany(id) {
+                    await axios.post(`${API}/admin/company/${id}/reject`, {}, { headers: this.authHeaders() });
+                    this.showAlert('Company rejected', 'warning');
+                    await this.loadAdminDashboard();
+                },
+                async blacklistCompany(id) {
+                    await axios.post(`${API}/admin/company/${id}/blacklist`, {}, { headers: this.authHeaders() });
+                    this.showAlert('Company blacklist status toggled', 'warning');
+                    await this.searchCompanies();
+                },
+                async deleteCompany(id) {
+                    if (!confirm('Delete this company?')) return;
+                    await axios.delete(`${API}/admin/company/${id}/delete`, { headers: this.authHeaders() });
+                    this.showAlert('Company deleted', 'danger');
+                    await this.searchCompanies();
+                },
+                async blacklistStudent(id) {
+                    await axios.post(`${API}/admin/student/${id}/blacklist`, {}, { headers: this.authHeaders() });
+                    this.showAlert('Student blacklist status toggled', 'warning');
+                    await this.searchStudents();
+                },
+                async deleteStudent(id) {
+                    if (!confirm('Delete this student?')) return;
+                    await axios.delete(`${API}/admin/student/${id}/delete`, { headers: this.authHeaders() });
+                    this.showAlert('Student deleted', 'danger');
+                    await this.searchStudents();
+                },
+                async approveDrive(id) {
+                    await axios.post(`${API}/admin/drive/${id}/approve`, {}, { headers: this.authHeaders() });
+                    this.showAlert('Drive approved');
+                    await this.loadAdminDashboard();
+                    if (this.page === 'drives') await this.loadDrives();
+                },
+                async rejectDrive(id) {
+                    await axios.post(`${API}/admin/drive/${id}/reject`, {}, { headers: this.authHeaders() });
+                    this.showAlert('Drive rejected', 'warning');
+                    await this.loadAdminDashboard();
+                },
+                // ── COMPANY ──
+                async loadCompanyDashboard() {
+                    const res = await axios.get(`${API}/company/dashboard`, { headers: this.authHeaders() });
+                    this.companyData = res.data.company;
+                    this.companyDrives = res.data.drives;
+                },
+                async createDrive() {
+                    try {
+                        await axios.post(`${API}/company/drive`, this.driveForm, { headers: this.authHeaders() });
+                        this.showAlert('Drive created! Awaiting admin approval.');
+                        this.page = 'dashboard';
+                        await this.loadCompanyDashboard();
+                    } catch(e) {
+                        this.showAlert(e.response?.data?.error || 'Failed to create drive', 'danger');
+                    }
+                },
+                async closeDrive(id) {
+                    await axios.post(`${API}/company/drive/${id}/close`, {}, { headers: this.authHeaders() });
+                    this.showAlert('Drive closed', 'warning');
+                    await this.loadCompanyDashboard();
+                },
+                async deleteDrive(id) {
+                    if (!confirm('Delete this drive?')) return;
+                    await axios.delete(`${API}/company/drive/${id}/delete`, { headers: this.authHeaders() });
+                    this.showAlert('Drive deleted', 'danger');
+                    await this.loadCompanyDashboard();
+                },
+                async viewApplications(driveId) {
+                    this.currentDriveId = driveId;
+                    const res = await axios.get(`${API}/company/drive/${driveId}/applications`, { headers: this.authHeaders() });
+                    this.applicationsList = res.data.map(a => ({ ...a, newStatus: a.status, salary: '' }));
+                    this.page = 'applications';
+                },
+                async updateApplication(app) {
+                    try {
+                        await axios.put(`${API}/company/application/${app.id}`, {
+                            status: app.newStatus,
+                            salary: app.salary,
+                            note: app.note
+                        }, { headers: this.authHeaders() });
+                        this.showAlert('Application updated');
+                        await this.viewApplications(this.currentDriveId);
+                    } catch(e) {
+                        this.showAlert(e.response?.data?.error || 'Update failed', 'danger');
+                    }
+                },
+                // ── STUDENT ──
+                async loadStudentDashboard() {
+                    const res = await axios.get(`${API}/student/dashboard`, { headers: this.authHeaders() });
+                    this.studentData = res.data.student;
+                    this.availableDrives = res.data.drives;
+                    this.studentApplications = res.data.applications;
+                },
+                async uploadResume(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('resume', file);
+                    try {
+                        await axios.post(`${API}/student/profile/resume`, formData, {
+                            headers: { ...this.authHeaders(), 'Content-Type': 'multipart/form-data' }
+                        });
+                        this.showAlert('Resume uploaded!');
+                        await this.loadStudentDashboard();
+                    } catch(e) {
+                        this.showAlert(e.response?.data?.error || 'Upload failed', 'danger');
+                    }
+                },
+                async searchDrives() {
+                    const res = await axios.get(`${API}/student/dashboard?search=${this.driveSearch}`, { headers: this.authHeaders() });
+                    this.availableDrives = res.data.drives;
+                },
+                async applyDrive(id) {
+                    try {
+                        await axios.post(`${API}/student/apply/${id}`, {}, { headers: this.authHeaders() });
+                        this.showAlert('Applied successfully!');
+                        await this.loadStudentDashboard();
+                    } catch(e) {
+                        this.showAlert(e.response?.data?.error || 'Apply failed', 'danger');
+                    }
+                },
+                async loadPlacements() {
+                    const res = await axios.get(`${API}/student/placements`, { headers: this.authHeaders() });
+                    this.placementsList = res.data;
+                    this.page = 'placements';
+                },
+                async saveProfile() {
+                    try {
+                        await axios.put(`${API}/student/profile`, this.profileForm, { headers: this.authHeaders() });
+                        this.showAlert('Profile updated!');
+                        await this.loadStudentDashboard();
+                        this.page = 'dashboard';
+                    } catch(e) {
+                        this.showAlert('Update failed', 'danger');
+                    }
+                },
+                async exportCSV(role) {
+                    try {
+                        const endpoint = role === 'student' ? `${API}/student/export` : `${API}/company/export`;
+                        await axios.post(endpoint, {}, { headers: this.authHeaders() });
+                        this.showAlert('Export started! Check backend/static/exports/ folder.');
+                    } catch(e) {
+                        this.showAlert('Export failed', 'danger');
+                    }
+                },
+                driveStatusBadge(status) {
+                    const map = { Approved: 'badge bg-success', Pending: 'badge bg-warning text-dark', Rejected: 'badge bg-danger', Closed: 'badge bg-secondary' };
+                    return map[status] || 'badge bg-secondary';
+                },
+                appStatusBadge(status) {
+                    const map = { Applied: 'badge bg-secondary', Shortlisted: 'badge bg-info', Interview: 'badge bg-primary', Selected: 'badge bg-success', Rejected: 'badge bg-danger' };
+                    return map[status] || 'badge bg-secondary';
+                },
+            },
+            async mounted() {
+                const token = localStorage.getItem('token');
+                const role = localStorage.getItem('role');
+                if (token && role) {
+                    this.token = token;
+                    this.currentUser = { role };
+                    try {
+                        await this.fetchMe();
+                        this.page = 'dashboard';
+                        await this.loadDashboard();
+                    } catch(e) {
+                        this.logout();
+                    }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

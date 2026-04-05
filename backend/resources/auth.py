@@ -3,6 +3,8 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from extensions import db
 from sqlalchemy import select
 
+import redis
+r = redis.Redis(host='localhost', port=6379, db=0)
 auth_bp = Blueprint('auth', __name__)
 
 
@@ -15,11 +17,29 @@ def login():
     email = data.get('email', '').strip()
     password = data.get('password', '')
 
+    lockout_key = f'lockout_{email}'
+    attempts_key = f'attempts_{email}'
+
+    if r.get(lockout_key):
+        ttl = r.ttl(lockout_key)
+        return jsonify({'error': f'Too many failed attempts. Try again in {ttl} seconds.'}), 429
+
     from models import User
     user = db.session.execute(select(User).filter_by(email=email)).scalar_one_or_none()
 
     if not user or not user.check_password(password):
-        return jsonify({'error': 'Invalid email or password'}), 401
+        attempts = r.incr(attempts_key)
+        r.expire(attempts_key, 300)  
+        remaining = 5 - int(attempts)
+        if remaining <= 0:
+            r.setex(lockout_key, 300, 1)  
+            r.delete(attempts_key)
+            return jsonify({'error': 'Too many failed attempts. Locked out for 15 minutes.'}), 429
+        return jsonify({'error': f'Invalid email or password. {remaining} attempts remaining.'}), 401
+
+    # Successful login - clear attempt counter
+    r.delete(attempts_key)
+    r.delete(lockout_key)
 
     if user.is_blacklisted:
         return jsonify({'error': 'Account blacklisted'}), 403
@@ -29,7 +49,6 @@ def login():
 
     token = create_access_token(identity=str(user.id), additional_claims={'role': user.role})
     return jsonify({'token': token, 'role': user.role}), 200
-
 
 @auth_bp.route('/register/student', methods=['POST'])
 def register_student():
@@ -80,7 +99,8 @@ def register_student():
     )
     db.session.add(new_student)
     db.session.commit()
-
+    
+    r.delete('admin_dashboard')
     return jsonify({'message': 'Registration successful'}), 201
 
 
@@ -118,7 +138,7 @@ def register_company():
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.flush()
-
+    
     new_company = Company(
         user_id=new_user.id,
         company_name=company_name,
@@ -130,7 +150,8 @@ def register_company():
     )
     db.session.add(new_company)
     db.session.commit()
-
+    
+    r.delete('admin_dashboard')
     return jsonify({'message': 'Registration submitted. Awaiting admin approval.'}), 201
 
 
@@ -139,7 +160,7 @@ def register_company():
 def me():
     identity = get_jwt_identity()
     from models import User
-    user = db.session.get(User, int(idenitity))
+    user = db.session.get(User, int(identity))
     if not user:
         return jsonify({'error': 'User not found'}), 404
     return jsonify({

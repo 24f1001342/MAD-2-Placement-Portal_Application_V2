@@ -4,7 +4,8 @@ from extensions import db
 from sqlalchemy import select
 from functools import wraps
 from datetime import datetime
-
+import redis
+r = redis.Redis(host='localhost', port=6379, db=0)
 company_bp = Blueprint('company', __name__)
 
 
@@ -103,6 +104,7 @@ def create_drive():
     )
     db.session.add(new_drive)
     db.session.commit()
+    r.delete('admin_dashboard')
     return jsonify({'message': 'Drive created. Awaiting admin approval.', 'id': new_drive.id}), 201
 
 
@@ -128,7 +130,7 @@ def edit_drive(drive_id):
     drive.required_skills = data.get('required_skills', drive.required_skills)
     drive.salary_range = data.get('salary_range', drive.salary_range)
     drive.status = 'Pending'
-
+    
     deadline_str = data.get('application_deadline')
     if deadline_str:
         try:
@@ -137,6 +139,11 @@ def edit_drive(drive_id):
             return jsonify({'error': 'Invalid deadline format'}), 400
 
     db.session.commit()
+    drive_keys = r.keys('approved_drives_*')
+    if drive_keys:
+        r.delete(*drive_keys)
+    
+    r.delete('admin_dashboard')
     return jsonify({'message': 'Drive updated and resubmitted for approval'}), 200
 
 
@@ -157,6 +164,9 @@ def close_drive(drive_id):
 
     drive.status = 'Closed'
     db.session.commit()
+    drive_keys = r.keys('approved_drives_*')
+    if drive_keys:
+        r.delete(*drive_keys)
     return jsonify({'message': 'Drive closed'}), 200
 
 
@@ -177,6 +187,9 @@ def delete_drive(drive_id):
 
     db.session.delete(drive)
     db.session.commit()
+    drive_keys = r.keys('approved_drives_*')
+    if drive_keys:
+        r.delete(*drive_keys)
     return jsonify({'message': 'Drive deleted'}), 200
 
 
