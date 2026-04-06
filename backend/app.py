@@ -89,6 +89,16 @@ def serve_resume(filename):
         os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'resumes'),
         filename
     )
+
+
+@flask_app.route('/manifest')
+def manifest():
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), '..', 'frontend'),
+        'manifest.json'
+    )
+
+
 @flask_app.route('/')
 def index():
     return send_from_directory(
