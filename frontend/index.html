@@ -107,6 +107,10 @@
                                     <div class="col-md-6 mb-3"><label class="form-label">Branch</label><input v-model="regStudent.branch" class="form-control" placeholder="CSE"></div>
                                 </div>
                                 <div class="mb-3"><label class="form-label">Skills</label><input v-model="regStudent.skills" class="form-control" placeholder="Python, Flask, SQL"></div>
+                                <div class="mb-3">
+                                    <label class="form-label">Resume</label>
+                                    <input type="file" ref="regResumeFile" accept=".pdf" class="form-control">
+                                </div>
                                 <div class="d-grid mt-3">
                                     <button class="btn btn-primary" @click="registerStudent">Register as Student</button>
                                 </div>
@@ -517,8 +521,9 @@
                         <div class="row align-items-center">
                             <div class="col-md-3 text-secondary">Resume</div>
                             <div class="col-md-9">
-                                <span v-if="studentData.resume" class="text-success me-3"><i class="bi bi-file-earmark-check me-1"></i>{{ studentData.resume }}</span>
-                                <span v-else class="text-muted me-3">No resume uploaded</span>
+                                <a v-if="studentData.resume" :href="`http://localhost:5000/resume/${studentData.resume}`" target="_blank" class="text-success me-3">
+                                    <i class="bi bi-file-earmark-check me-1"></i>{{ studentData.resume }}
+                                </a>
                                 <input type="file" id="resumeInput" accept=".pdf" style="display:none" @change="uploadResume">
                                 <button class="btn btn-sm btn-outline-primary" @click="$refs.resumeInput.click()">
                                     <i class="bi bi-upload me-1"></i>{{ studentData.resume ? 'Replace' : 'Upload PDF' }}
@@ -722,8 +727,21 @@
                     this.currentUser = res.data;
                 },
                 async registerStudent() {
+                    if (!this.regStudent.username || !this.regStudent.email || 
+        !this.regStudent.password || !this.regStudent.full_name || 
+        !this.regStudent.roll_number) {
+        this.showAlert('Please fill all required fields', 'danger');
+        return;
+    }
                     try {
-                        await axios.post(`${API}/auth/register/student`, this.regStudent);
+                        const formData = new FormData();
+                        Object.keys(this.regStudent).forEach(k => formData.append(k, this.regStudent[k]));
+                        if (this.$refs.regResumeFile?.files[0]) {
+                            formData.append('resume', this.$refs.regResumeFile.files[0]);
+                        }
+                        await axios.post(`${API}/auth/register/student`, formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        });
                         this.showAlert('Registration successful! You can now log in.');
                         this.page = 'login';
                     } catch(e) {

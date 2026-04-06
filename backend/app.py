@@ -83,7 +83,12 @@ celery.conf.beat_schedule = {
         'schedule': crontab(day_of_month=1, hour=0, minute=0),
     },
 }
-
+@flask_app.route('/resume/<filename>')
+def serve_resume(filename):
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'resumes'),
+        filename
+    )
 @flask_app.route('/')
 def index():
     return send_from_directory(

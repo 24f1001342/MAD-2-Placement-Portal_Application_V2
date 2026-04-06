@@ -52,25 +52,21 @@ def login():
 
 @auth_bp.route('/register/student', methods=['POST'])
 def register_student():
-    data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No data provided'}), 400
-
-    from models import User, Student
-
-    username = data.get('username', '').strip()
-    email = data.get('email', '').strip()
-    password = data.get('password', '')
-    full_name = data.get('full_name', '').strip()
-    roll_number = data.get('roll_number', '').strip()
-    degree = data.get('degree', '').strip()
-    branch = data.get('branch', '').strip()
-    cgpa = data.get('cgpa', None)
-    skills = data.get('skills', '').strip()
+    # switch from get_json to form data
+    username = request.form.get('username', '').strip()
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '')
+    full_name = request.form.get('full_name', '').strip()
+    roll_number = request.form.get('roll_number', '').strip()
+    degree = request.form.get('degree', '').strip()
+    branch = request.form.get('branch', '').strip()
+    cgpa = request.form.get('cgpa', None)
+    skills = request.form.get('skills', '').strip()
 
     if not all([username, email, password, full_name, roll_number]):
         return jsonify({'error': 'Missing required fields'}), 400
 
+    from models import User, Student
     if db.session.execute(select(User).filter_by(email=email)).scalar_one_or_none():
         return jsonify({'error': 'Email already registered'}), 409
 
@@ -88,6 +84,16 @@ def register_student():
     db.session.add(new_user)
     db.session.flush()
 
+    resume_filename = None
+    if 'resume' in request.files:
+        resume = request.files['resume']
+        if resume.filename.endswith('.pdf'):
+            import os
+            resume_filename = f"{roll_number}_resume.pdf"
+            upload_folder = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads', 'resumes')
+            os.makedirs(upload_folder, exist_ok=True)
+            resume.save(os.path.join(upload_folder, resume_filename))
+
     new_student = Student(
         user_id=new_user.id,
         full_name=full_name,
@@ -95,11 +101,12 @@ def register_student():
         degree=degree,
         branch=branch,
         cgpa=float(cgpa) if cgpa else None,
-        skills=skills
+        skills=skills,
+        resume_filename=resume_filename
     )
     db.session.add(new_student)
     db.session.commit()
-    
+
     r.delete('admin_dashboard')
     return jsonify({'message': 'Registration successful'}), 201
 
