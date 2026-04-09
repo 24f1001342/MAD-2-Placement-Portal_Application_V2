@@ -34,7 +34,7 @@ def login():
         if remaining <= 0:
             r.setex(lockout_key, 300, 1)  
             r.delete(attempts_key)
-            return jsonify({'error': 'Too many failed attempts. Locked out for 15 minutes.'}), 429
+            return jsonify({'error': 'Too many failed attempts. Locked out for 5 minutes.'}), 429
         return jsonify({'error': f'Invalid email or password. {remaining} attempts remaining.'}), 401
 
     # Successful login - clear attempt counter
