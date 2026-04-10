@@ -73,16 +73,30 @@ celery = make_celery(flask_app)
 from tasks import create_tasks
 send_daily_reminders, send_monthly_report, export_applications_csv = create_tasks(celery, flask_app)
 
+
+# use crontab for real scheduling in production
+# celery.conf.beat_schedule = {
+#     'daily-reminder': {
+#         'task': 'tasks.send_daily_reminders',
+#         'schedule': crontab(minute=0, hour=8),
+#     },
+#     'monthly-report': {
+#         'task': 'tasks.send_monthly_report',
+#         'schedule': crontab(day_of_month=1, hour=0, minute=0),
+#     },
+# }
+
 celery.conf.beat_schedule = {
     'daily-reminder': {
         'task': 'tasks.send_daily_reminders',
-        'schedule': crontab(minute=0, hour=8),
+        'schedule': 10.0,   # every 10 seconds - shows live firing
     },
     'monthly-report': {
         'task': 'tasks.send_monthly_report',
-        'schedule': crontab(day_of_month=1, hour=0, minute=0),
+        'schedule': 10.0,
     },
 }
+
 @flask_app.route('/resume/<filename>')
 def serve_resume(filename):
     return send_from_directory(
