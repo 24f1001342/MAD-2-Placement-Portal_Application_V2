@@ -140,6 +140,7 @@ def delete_company(id):
     db.session.delete(company)
     db.session.delete(user)
     db.session.commit()
+    r.delete('admin_dashboard')
     return jsonify({'message': 'Company deleted'}), 200
 
 
@@ -193,6 +194,7 @@ def delete_student(id):
     db.session.delete(student)
     db.session.delete(user)
     db.session.commit()
+    r.delete('admin_dashboard')
     return jsonify({'message': 'Student deleted'}), 200
 
 
