@@ -64,6 +64,7 @@ createApp({
                 await this.fetchMe();
                 this.page = 'dashboard';
                 await this.loadDashboard();
+                this.loginForm = { email: '', password: '' };
             } catch(e) {
                 this.showAlert(e.response?.data?.error || 'Login failed', 'danger');
             }
@@ -89,6 +90,7 @@ createApp({
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 this.showAlert('Registration successful! You can now log in.');
+                this.regStudent = { username: '', email: '', password: '', full_name: '', roll_number: '', degree: '', branch: '', cgpa: '', skills: '' };
                 this.page = 'login';
             } catch(e) {
                 this.showAlert(e.response?.data?.error || 'Registration failed', 'danger');
@@ -98,6 +100,7 @@ createApp({
             try {
                 await axios.post(`${API}/auth/register/company`, this.regCompany);
                 this.showAlert('Registration submitted! Await admin approval.');
+                this.regCompany = { username: '', email: '', password: '', company_name: '', industry: '', location: '', hr_contact: '', website: '', description: '' };
                 this.page = 'login';
             } catch(e) {
                 this.showAlert(e.response?.data?.error || 'Registration failed', 'danger');

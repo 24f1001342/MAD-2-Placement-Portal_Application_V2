@@ -119,5 +119,12 @@ def index():
         os.path.join(os.path.dirname(__file__), '..', 'frontend'),
         'index.html'
     )
+
+@flask_app.route('/app.js')
+def appjs():
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), '..', 'frontend'),
+        'app.js'
+    )
 if __name__ == '__main__':
     flask_app.run(debug=True)
