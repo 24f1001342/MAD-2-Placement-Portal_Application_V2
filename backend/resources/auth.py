@@ -51,7 +51,9 @@ def login():
     return jsonify({'token': token, 'role': user.role}), 200
 
 @auth_bp.route('/register/student', methods=['POST'])
+
 def register_student():
+    
     # switch from get_json to form data
     username = request.form.get('username', '').strip()
     email = request.form.get('email', '').strip()
@@ -90,7 +92,8 @@ def register_student():
         if resume.filename.endswith('.pdf'):
             import os
             resume_filename = f"{roll_number}_resume.pdf"
-            upload_folder = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads', 'resumes')
+            from config import Config
+            upload_folder = Config.UPLOAD_FOLDER
             os.makedirs(upload_folder, exist_ok=True)
             resume.save(os.path.join(upload_folder, resume_filename))
 

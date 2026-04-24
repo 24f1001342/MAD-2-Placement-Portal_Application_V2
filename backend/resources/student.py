@@ -213,7 +213,8 @@ def upload_resume():
         return jsonify({'error': 'Only PDF files allowed'}), 400
 
     filename = f"{student.roll_number}_resume.pdf"
-    upload_folder = os.path.join(os.path.dirname(__file__), '..', 'static', 'uploads', 'resumes')
+    from config import Config
+    upload_folder = Config.UPLOAD_FOLDER
     os.makedirs(upload_folder, exist_ok=True)
     resume.save(os.path.join(upload_folder, filename))
 

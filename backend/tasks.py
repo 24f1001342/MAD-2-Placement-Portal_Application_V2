@@ -83,8 +83,8 @@ def create_tasks(celery, app):
     def export_applications_csv(id, role='student'):
         with app.app_context():
             from models import Student, Application, Company, PlacementDrive
-
-            export_folder = os.path.join(os.path.dirname(__file__), 'static', 'exports')
+            from config import Config
+            export_folder = Config.EXPORT_FOLDER
             os.makedirs(export_folder, exist_ok=True)
             filename = f"export_{role}_{id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.csv"
             filepath = os.path.join(export_folder, filename)

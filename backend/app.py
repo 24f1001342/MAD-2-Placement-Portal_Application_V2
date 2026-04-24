@@ -99,32 +99,21 @@ celery.conf.beat_schedule = {
 
 @flask_app.route('/resume/<filename>')
 def serve_resume(filename):
-    return send_from_directory(
-        os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'resumes'),
-        filename
-    )
+    return send_from_directory(Config.UPLOAD_FOLDER, filename)
 
 
 @flask_app.route('/manifest')
 def manifest():
-    return send_from_directory(
-        os.path.join(os.path.dirname(__file__), '..', 'frontend'),
-        'manifest.json'
-    )
+    return send_from_directory(Config.FRONTEND_DIR, 'manifest.json')
+
 
 
 @flask_app.route('/')
 def index():
-    return send_from_directory(
-        os.path.join(os.path.dirname(__file__), '..', 'frontend'),
-        'index.html'
-    )
+    return send_from_directory(Config.FRONTEND_DIR,'index.html')    
 
 @flask_app.route('/app.js')
 def appjs():
-    return send_from_directory(
-        os.path.join(os.path.dirname(__file__), '..', 'frontend'),
-        'app.js'
-    )
+    return send_from_directory(Config.FRONTEND_DIR, 'app.js')
 if __name__ == '__main__':
     flask_app.run(debug=True)
